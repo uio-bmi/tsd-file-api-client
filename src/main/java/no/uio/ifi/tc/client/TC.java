@@ -6,6 +6,9 @@ import kong.unirest.Unirest;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.InputStream;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TC {
@@ -30,6 +33,21 @@ public class TC {
         return String.format(BASE_URL, environment.getEnvironment(), version, project, endpoint);
     }
 
+    public String upload(String token, InputStream inputStream, String filename) {
+        return upload(token, inputStream, filename, null);
+    }
+
+    public String upload(String token, InputStream inputStream, String filename, String groupName) {
+        String url = getURL(StringUtils.isEmpty(groupName) ? "/files/stream" : ("/files/stream?group=" + groupName));
+        return Unirest
+                .put(url)
+                .header("Filename", filename)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .field("upload", inputStream, filename)
+                .asString()
+                .getBody();
+    }
+
     public String getToken(TokenType tokenType) {
         String url = getURL("/auth/basic/token");
         return Unirest
@@ -45,7 +63,6 @@ public class TC {
 
     public String getToken(TokenType tokenType, String accessKey, String username, String password, String oneTimeCode) {
         String url = getURL("/auth/tsd/token?type=" + tokenType.name().toLowerCase());
-        System.out.println("url = " + url);
         return Unirest
                 .post(url)
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
