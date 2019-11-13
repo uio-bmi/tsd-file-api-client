@@ -3,12 +3,14 @@ package no.uio.ifi.tc.client;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
 import kong.unirest.Unirest;
+import kong.unirest.json.JSONArray;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.InputStream;
+import java.util.Collection;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TC {
@@ -33,12 +35,37 @@ public class TC {
         return String.format(BASE_URL, environment.getEnvironment(), version, project, endpoint);
     }
 
-    public String upload(String token, InputStream inputStream, String filename) {
-        return upload(token, inputStream, filename, null);
+    public Collection<String> getResumableUploads(String token) {
+        return getResumableUploads(token, null, null);
     }
 
-    public String upload(String token, InputStream inputStream, String filename, String groupName) {
-        String url = getURL(StringUtils.isEmpty(groupName) ? "/files/stream" : ("/files/stream?group=" + groupName));
+    public Collection<String> getResumableUploadsByFile(String token, String fileName) {
+        return getResumableUploads(token, fileName, null);
+    }
+
+    public Collection<String> getResumableUploadsById(String token, String uploadId) {
+        return getResumableUploads(token, null, uploadId);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Collection<String> getResumableUploads(String token, String fileName, String uploadId) {
+        String urlString = StringUtils.isEmpty(fileName) ? "/files/resumables" : ("/files/resumables/" + fileName);
+        if (StringUtils.isNotEmpty(uploadId)) {
+            urlString += "?id=" + uploadId;
+        }
+        String url = getURL(urlString);
+        JSONArray resumables = Unirest
+                .get(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .asJson()
+                .getBody()
+                .getObject()
+                .getJSONArray("resumables");
+        return resumables.toList();
+    }
+
+    public String upload(String token, InputStream inputStream, String filename) {
+        String url = getURL("/files/stream");
         return Unirest
                 .put(url)
                 .header("Filename", filename)
