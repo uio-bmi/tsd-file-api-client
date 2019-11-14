@@ -31,8 +31,13 @@ public class TSDFileAPIClient {
     @Getter
     private String accessKey;
 
-    public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename) {
-        return uploadChunk(token, chunkNumber, chunk, filename, null);
+    public String finalizeChunkedUpload(String token, String filename, String uploadId) {
+        String url = getURL("/files/stream/" + filename + "?chunk=end&id=" + uploadId);
+        return Unirest
+                .patch(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .asString()
+                .getBody();
     }
 
     public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename, String uploadId) {
@@ -41,15 +46,18 @@ public class TSDFileAPIClient {
             urlString += "&id=" + uploadId;
         }
         String url = getURL(urlString);
-        JSONObject upload = Unirest
+        return Unirest
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .field("upload", chunk, ContentType.APPLICATION_OCTET_STREAM.getMimeType())
+                .body(chunk)
                 .asJson()
                 .getBody()
-                .getObject();
-        return upload
+                .getObject()
                 .getString("id");
+    }
+
+    public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename) {
+        return uploadChunk(token, chunkNumber, chunk, filename, null);
     }
 
     public void deleteAllResumableUploads(String token) {
