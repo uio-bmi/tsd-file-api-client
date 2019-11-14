@@ -3,21 +3,21 @@ package no.uio.ifi.tc.client;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
 import kong.unirest.Unirest;
-import kong.unirest.json.JSONArray;
+import kong.unirest.json.JSONObject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
+import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class TC {
+public class TSDFileAPIClient {
 
     public static final String BASE_URL = "https://%sapi.tsd.usit.no/%s/%s%s";
     public static final String BEARER = "Bearer ";
-    public static final String TOKEN = "token";
 
     @Getter
     private Environment environment;
@@ -31,46 +31,81 @@ public class TC {
     @Getter
     private String accessKey;
 
-    private String getURL(String endpoint) {
-        return String.format(BASE_URL, environment.getEnvironment(), version, project, endpoint);
+    public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename) {
+        return uploadChunk(token, chunkNumber, chunk, filename, null);
     }
 
-    public Collection<String> getResumableUploads(String token) {
+    public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename, String uploadId) {
+        String urlString = "/files/stream/" + filename + "?chunk=" + chunkNumber;
+        if (StringUtils.isNotEmpty(uploadId)) {
+            urlString += "&id=" + uploadId;
+        }
+        String url = getURL(urlString);
+        JSONObject upload = Unirest
+                .patch(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .field("upload", chunk, ContentType.APPLICATION_OCTET_STREAM.getMimeType())
+                .asJson()
+                .getBody()
+                .getObject();
+        return upload
+                .getString("id");
+    }
+
+    public void deleteAllResumableUploads(String token) {
+        List<JSONObject> resumableUploads = getResumableUploads(token);
+        for (JSONObject resumableUpload : resumableUploads) {
+            String uploadId = resumableUpload.getString("id");
+            String fileName = resumableUpload.getString("filename");
+            deleteResumableUpload(token, fileName, uploadId);
+        }
+    }
+
+    public String deleteResumableUpload(String token, String fileName, String uploadId) {
+        String url = getURL(String.format("/files/resumables/%s?id=%s", fileName, uploadId));
+        return Unirest
+                .delete(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .asString()
+                .getBody();
+    }
+
+    public List<JSONObject> getResumableUploads(String token) {
         return getResumableUploads(token, null, null);
     }
 
-    public Collection<String> getResumableUploadsByFile(String token, String fileName) {
+    public List<JSONObject> getResumableUploadsByFile(String token, String fileName) {
         return getResumableUploads(token, fileName, null);
     }
 
-    public Collection<String> getResumableUploadsById(String token, String uploadId) {
+    public List<JSONObject> getResumableUploadsById(String token, String uploadId) {
         return getResumableUploads(token, null, uploadId);
     }
 
     @SuppressWarnings("unchecked")
-    public Collection<String> getResumableUploads(String token, String fileName, String uploadId) {
+    public List<JSONObject> getResumableUploads(String token, String fileName, String uploadId) {
         String urlString = StringUtils.isEmpty(fileName) ? "/files/resumables" : ("/files/resumables/" + fileName);
         if (StringUtils.isNotEmpty(uploadId)) {
             urlString += "?id=" + uploadId;
         }
         String url = getURL(urlString);
-        JSONArray resumables = Unirest
+        return Unirest
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .asJson()
                 .getBody()
                 .getObject()
-                .getJSONArray("resumables");
-        return resumables.toList();
+                .getJSONArray("resumables")
+                .toList();
     }
 
-    public String upload(String token, InputStream inputStream, String filename) {
+    public String upload(String token, InputStream inputStream, String filename) throws IOException {
         String url = getURL("/files/stream");
         return Unirest
                 .put(url)
                 .header("Filename", filename)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .field("upload", inputStream, filename)
+                .body(inputStream.readAllBytes())
                 .asString()
                 .getBody();
     }
@@ -85,7 +120,7 @@ public class TC {
                 .asJson()
                 .getBody()
                 .getObject()
-                .getString(TOKEN);
+                .getString("token");
     }
 
     public String getToken(TokenType tokenType, String accessKey, String username, String password, String oneTimeCode) {
@@ -98,7 +133,11 @@ public class TC {
                 .asJson()
                 .getBody()
                 .getObject()
-                .getString(TOKEN);
+                .getString("token");
+    }
+
+    private String getURL(String endpoint) {
+        return String.format(BASE_URL, environment.getEnvironment(), version, project, endpoint);
     }
 
     public static class Builder {
@@ -135,13 +174,13 @@ public class TC {
             return this;
         }
 
-        public TC build() {
-            TC tc = new TC();
-            tc.environment = this.environment == null ? DEFAULT_ENVIRONMENT : this.environment;
-            tc.version = this.version == null ? DEFAULT_VERSION : this.version;
-            tc.project = this.project == null ? DEFAULT_PROJECT : this.project;
-            tc.accessKey = this.accessKey;
-            return tc;
+        public TSDFileAPIClient build() {
+            TSDFileAPIClient tsdFileAPIClient = new TSDFileAPIClient();
+            tsdFileAPIClient.environment = this.environment == null ? DEFAULT_ENVIRONMENT : this.environment;
+            tsdFileAPIClient.version = this.version == null ? DEFAULT_VERSION : this.version;
+            tsdFileAPIClient.project = this.project == null ? DEFAULT_PROJECT : this.project;
+            tsdFileAPIClient.accessKey = this.accessKey;
+            return tsdFileAPIClient;
         }
 
     }
