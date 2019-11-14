@@ -36,8 +36,10 @@ public class TSDFileAPIClient {
         return Unirest
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asString()
-                .getBody();
+                .asJson()
+                .getBody()
+                .getObject()
+                .getString("id");
     }
 
     public String uploadChunk(String token, long chunkNumber, byte[] chunk, String filename, String uploadId) {
