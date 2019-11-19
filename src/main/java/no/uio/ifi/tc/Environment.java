@@ -1,9 +1,12 @@
-package no.uio.ifi.tc.client;
+package no.uio.ifi.tc;
 
 import lombok.Getter;
 
 import java.util.Arrays;
 
+/**
+ * Type of the environment to work against. PRODUCTION is the default one.
+ */
 public enum Environment {
 
     PRODUCTION(""), INTERNAL("internal."), TESTING("test.");

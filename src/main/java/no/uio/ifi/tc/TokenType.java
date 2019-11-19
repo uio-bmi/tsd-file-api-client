@@ -1,7 +1,10 @@
-package no.uio.ifi.tc.client;
+package no.uio.ifi.tc;
 
 import java.util.Arrays;
 
+/**
+ * Type of the token to request. IMPORT is the default one.
+ */
 public enum TokenType {
 
     IMPORT, EXPORT, ADMIN;
