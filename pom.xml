@@ -20,7 +20,7 @@
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/uio-bmi/crypt4gh</url>
+        <url>https://github.com/uio-bmi/TSD-File-API-client</url>
     </issueManagement>
 
     <licenses>
@@ -32,9 +32,9 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/uio-bmi/crypt4gh/</url>
+        <url>https://github.com/uio-bmi/TSD-File-API-client/</url>
         <connection>
-            scm:git:git://github.com/uio-bmi/crypt4gh.git
+            scm:git:git://github.com/uio-bmi/TSD-File-API-client.git
         </connection>
     </scm>
 
@@ -110,7 +110,7 @@
         <repository>
             <id>github</id>
             <name>GitHub uio-bmi Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/uio-bmi/crypt4gh</url>
+            <url>https://maven.pkg.github.com/uio-bmi/TSD-File-API-client</url>
         </repository>
     </distributionManagement>
 
