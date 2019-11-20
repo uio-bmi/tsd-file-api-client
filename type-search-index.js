@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"no.uio.ifi.tc","l":"TSDFileAPIClient.Builder"},{"p":"no.uio.ifi.tc","l":"Environment"},{"p":"no.uio.ifi.tc","l":"TokenType"},{"p":"no.uio.ifi.tc","l":"TSDFileAPIClient"}]
