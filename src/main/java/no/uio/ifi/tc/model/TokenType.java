@@ -1,4 +1,4 @@
-package no.uio.ifi.tc;
+package no.uio.ifi.tc.model;
 
 import java.util.Arrays;
 
