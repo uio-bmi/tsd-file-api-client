@@ -154,12 +154,12 @@ public class TSDFileAPIClient {
      * Deletes initiated and not yet finished resumable upload.
      *
      * @param token    Auth token to use.
-     * @param fileName File name to use.
      * @param uploadId Upload ID.
      * @return API response.
      */
-    public Message deleteResumableUpload(String token, String fileName, String uploadId) {
-        String url = getURL(String.format("/files/resumables/%s?id=%s", fileName, uploadId));
+    public Message deleteResumableUpload(String token, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
+        String url = getURL(String.format("/files/resumables/%s?id=%s", resumableUpload.getFileName(), uploadId));
         String response = unirestInstance
                 .delete(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
