@@ -17,7 +17,7 @@ To include this library to your Maven project add following to the `pom.xml`:
         <dependency>
             <groupId>no.uio.ifi</groupId>
             <artifactId>tsd-file-api-client</artifactId>
-            <version>0.1.0</version>
+            <version>VERSION</version>
         </dependency>
     </dependencies>
 
