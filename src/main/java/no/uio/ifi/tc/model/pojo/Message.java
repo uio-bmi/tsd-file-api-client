@@ -5,8 +5,8 @@ import lombok.ToString;
 
 @Data
 @ToString
-public class TokenResponse {
+public class Message {
 
-    private String token;
+    private String message;
 
 }

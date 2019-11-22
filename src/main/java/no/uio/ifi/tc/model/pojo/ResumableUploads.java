@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @ToString
-public class GetResumableUploadResponse {
+public class ResumableUploads {
 
     private List<ResumableUpload> resumables;
 

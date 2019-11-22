@@ -4,17 +4,16 @@ import com.google.gson.Gson;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
 import kong.unirest.Unirest;
+import kong.unirest.UnirestInstance;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import no.uio.ifi.tc.model.Environment;
 import no.uio.ifi.tc.model.TokenType;
-import no.uio.ifi.tc.model.pojo.GetResumableUploadResponse;
-import no.uio.ifi.tc.model.pojo.TokenResponse;
-import no.uio.ifi.tc.model.pojo.UploadResponse;
-import org.apache.commons.lang3.StringUtils;
+import no.uio.ifi.tc.model.pojo.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 
 /**
  * Main class of the library, encapsulating TSD File API client methods.
@@ -25,6 +24,7 @@ public class TSDFileAPIClient {
     private static final String BASE_URL = "%s://%s%s/%s/%s%s";
     private static final String BEARER = "Bearer ";
 
+    private UnirestInstance unirestInstance = Unirest.spawnInstance();
     private Gson gson = new Gson();
 
     private String protocol;
@@ -43,46 +43,16 @@ public class TSDFileAPIClient {
      * @return API response.
      * @throws IOException In case of I/O related errors.
      */
-    public UploadResponse upload(String token, InputStream inputStream, String fileName) throws IOException {
+    public Message upload(String token, InputStream inputStream, String fileName) throws IOException {
         String url = getURL("/files/stream");
-        String response = Unirest
+        String response = unirestInstance
                 .put(url)
                 .header("Filename", fileName)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .body(inputStream.readAllBytes())
                 .asString()
                 .getBody();
-        return gson.fromJson(response, UploadResponse.class);
-    }
-
-    /**
-     * Lists all initiated and not yet finished resumable uploads.
-     *
-     * @param token Auth token to use.
-     * @return API response.
-     */
-    public GetResumableUploadResponse getResumableUploads(String token) {
-        return getResumableUploads(token, null, null);
-    }
-
-    /**
-     * Lists all initiated and not yet finished resumable uploads by file.
-     *
-     * @param token Auth token to use.
-     * @return API response.
-     */
-    public GetResumableUploadResponse getResumableUploadsByFile(String token, String fileName) {
-        return getResumableUploads(token, fileName, null);
-    }
-
-    /**
-     * Lists all initiated and not yet finished resumable uploads by Upload ID.
-     *
-     * @param token Auth token to use.
-     * @return API response.
-     */
-    public GetResumableUploadResponse getResumableUploadsById(String token, String uploadId) {
-        return getResumableUploads(token, null, uploadId);
+        return gson.fromJson(response, Message.class);
     }
 
     /**
@@ -91,19 +61,33 @@ public class TSDFileAPIClient {
      * @param token Auth token to use.
      * @return API response.
      */
-    public GetResumableUploadResponse getResumableUploads(String token, String fileName, String uploadId) {
-        String urlString = StringUtils.isEmpty(fileName) ? "/files/resumables" : ("/files/resumables/" + fileName);
-        if (StringUtils.isNotEmpty(uploadId)) {
-            urlString += "?id=" + uploadId;
-        }
+    public ResumableUploads getResumableUploads(String token) {
+        String urlString = "/files/resumables";
         String url = getURL(urlString);
-        String response = Unirest
+        String response = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asJson()
-                .getBody()
-                .toString();
-        return gson.fromJson(response, GetResumableUploadResponse.class);
+                .asString()
+                .getBody();
+        return gson.fromJson(response, ResumableUploads.class);
+    }
+
+    /**
+     * Lists all initiated and not yet finished resumable uploads by file and Upload ID.
+     *
+     * @param token    Auth token to use.
+     * @param uploadId Resumable upload ID.
+     * @return API response.
+     */
+    public Optional<ResumableUpload> getResumableUpload(String token, String uploadId) {
+        String urlString = "/files/resumables";
+        String url = getURL(urlString);
+        String response = unirestInstance
+                .get(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .asString()
+                .getBody();
+        return gson.fromJson(response, ResumableUploads.class).getResumables().stream().filter(u -> u.getId().equalsIgnoreCase(uploadId)).findAny();
     }
 
     /**
@@ -114,8 +98,16 @@ public class TSDFileAPIClient {
      * @param fileName   File name to use.
      * @return API response.
      */
-    public String initializeResumableUpload(String token, byte[] firstChunk, String fileName) {
-        return uploadChunk(token, 1, firstChunk, fileName, null);
+    public Chunk initializeResumableUpload(String token, byte[] firstChunk, String fileName) {
+        String urlString = "/files/stream/" + fileName + "?chunk=1";
+        String url = getURL(urlString);
+        String response = unirestInstance
+                .patch(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token)
+                .body(firstChunk)
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Chunk.class);
     }
 
     /**
@@ -124,58 +116,56 @@ public class TSDFileAPIClient {
      * @param token       Auth token to use.
      * @param chunkNumber Order number of the chunk.
      * @param chunk       Chunk of data to upload.
-     * @param fileName    File name to use.
      * @param uploadId    Upload ID.
      * @return API response.
      */
-    public String uploadChunk(String token, long chunkNumber, byte[] chunk, String fileName, String uploadId) {
-        String urlString = "/files/stream/" + fileName + "?chunk=" + chunkNumber;
-        if (StringUtils.isNotEmpty(uploadId)) {
-            urlString += "&id=" + uploadId;
-        }
+    public Chunk uploadChunk(String token, long chunkNumber, byte[] chunk, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
+        String urlString = "/files/stream/" + resumableUpload.getFileName() + "?chunk=" + chunkNumber + "&id=" + uploadId;
         String url = getURL(urlString);
-        return Unirest
+        String response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .body(chunk)
-                .asJson()
-                .getBody()
-                .toString();
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Chunk.class);
     }
 
     /**
      * Finalizes resumable upload.
      *
      * @param token    Auth token to use.
-     * @param fileName File name to use.
      * @param uploadId Upload ID.
      * @return API response.
      */
-    public String finalizeResumableUpload(String token, String fileName, String uploadId) {
-        String url = getURL("/files/stream/" + fileName + "?chunk=end&id=" + uploadId);
-        return Unirest
+    public Chunk finalizeResumableUpload(String token, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
+        String url = getURL("/files/stream/" + resumableUpload.getFileName() + "?chunk=end&id=" + uploadId);
+        String response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asJson()
-                .getBody()
-                .toString();
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Chunk.class);
     }
 
     /**
-     * Deletes initiated and not yet finished resumable uploads.
+     * Deletes initiated and not yet finished resumable upload.
      *
      * @param token    Auth token to use.
      * @param fileName File name to use.
      * @param uploadId Upload ID.
      * @return API response.
      */
-    public String deleteResumableUpload(String token, String fileName, String uploadId) {
+    public Message deleteResumableUpload(String token, String fileName, String uploadId) {
         String url = getURL(String.format("/files/resumables/%s?id=%s", fileName, uploadId));
-        return Unirest
+        String response = unirestInstance
                 .delete(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .getBody()
-                .toString();
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Message.class);
     }
 
     /**
@@ -184,17 +174,16 @@ public class TSDFileAPIClient {
      * @param tokenType Type of the token to request.
      * @return API response.
      */
-    public TokenResponse getToken(TokenType tokenType) {
+    public Token getToken(TokenType tokenType) {
         String url = getURL("/auth/basic/token");
-        String response = Unirest
+        String response = unirestInstance
                 .post(url)
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(HeaderNames.AUTHORIZATION, BEARER + accessKey)
                 .body(String.format("{\"type\":\"%s\"}", tokenType.name().toLowerCase()))
-                .asJson()
-                .getBody()
-                .toString();
-        return gson.fromJson(response, TokenResponse.class);
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Token.class);
     }
 
     /**
@@ -207,16 +196,16 @@ public class TSDFileAPIClient {
      * @param oneTimeCode OTP from the authentication device.
      * @return API response.
      */
-    public TokenResponse getToken(TokenType tokenType, String accessKey, String username, String password, String oneTimeCode) {
+    public Token getToken(TokenType tokenType, String accessKey, String username, String password, String oneTimeCode) {
         String url = getURL("/auth/tsd/token?type=" + tokenType.name().toLowerCase());
-        String response = Unirest
+        String response = unirestInstance
                 .post(url)
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(HeaderNames.AUTHORIZATION, BEARER + accessKey)
                 .body(String.format("{\"user_name\":\"%s\", \"password\": \"%s\", \"otp\":\"%s\"}", username, password, oneTimeCode))
-                .getBody()
-                .toString();
-        return gson.fromJson(response, TokenResponse.class);
+                .asString()
+                .getBody();
+        return gson.fromJson(response, Token.class);
     }
 
     private String getURL(String endpoint) {
@@ -234,6 +223,7 @@ public class TSDFileAPIClient {
         private static final String DEFAULT_PROJECT = "p11";
 
         private Boolean secure;
+        private Boolean checkCertificate;
         private String host;
         private Environment environment;
         private String version;
@@ -254,6 +244,17 @@ public class TSDFileAPIClient {
          */
         public Builder secure(boolean secure) {
             this.secure = secure;
+            return this;
+        }
+
+        /**
+         * Defines whether certificate will be checked in case of HTTPS connection.
+         *
+         * @param checkCertificate <code>true</code> for checking, <code>false</code> otherwise.
+         * @return Builder instance.
+         */
+        public Builder checkCertificate(boolean checkCertificate) {
+            this.checkCertificate = checkCertificate;
             return this;
         }
 
@@ -320,6 +321,7 @@ public class TSDFileAPIClient {
         public TSDFileAPIClient build() {
             TSDFileAPIClient tsdFileAPIClient = new TSDFileAPIClient();
             tsdFileAPIClient.protocol = this.secure == null ? "https" : (this.secure ? "https" : "http");
+            tsdFileAPIClient.unirestInstance.config().verifySsl(this.checkCertificate == null ? true : this.checkCertificate);
             tsdFileAPIClient.host = this.host == null ? DEFAULT_HOST : this.host;
             tsdFileAPIClient.environment = this.environment == null ? DEFAULT_ENVIRONMENT : this.environment;
             tsdFileAPIClient.version = this.version == null ? DEFAULT_VERSION : this.version;

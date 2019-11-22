@@ -14,7 +14,7 @@ public class ResumableUpload {
     private String id;
 
     @SerializedName("filename")
-    private String filename;
+    private String fileName;
 
     @SerializedName("group")
     private String group;
