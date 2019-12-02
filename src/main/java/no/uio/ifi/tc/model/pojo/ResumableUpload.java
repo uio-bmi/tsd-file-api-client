@@ -2,13 +2,15 @@ package no.uio.ifi.tc.model.pojo;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.math.BigInteger;
 
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @Data
-@ToString
-public class ResumableUpload {
+public class ResumableUpload extends TSDFileAPIResponse {
 
     @SerializedName("id")
     private String id;

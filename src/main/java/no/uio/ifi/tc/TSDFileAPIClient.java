@@ -1,12 +1,11 @@
 package no.uio.ifi.tc;
 
 import com.google.gson.Gson;
-import kong.unirest.ContentType;
-import kong.unirest.HeaderNames;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestInstance;
+import com.google.gson.JsonSyntaxException;
+import kong.unirest.*;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import no.uio.ifi.tc.model.Environment;
 import no.uio.ifi.tc.model.TokenType;
 import no.uio.ifi.tc.model.pojo.*;
@@ -18,6 +17,7 @@ import java.util.Optional;
 /**
  * Main class of the library, encapsulating TSD File API client methods.
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TSDFileAPIClient {
 
@@ -45,14 +45,21 @@ public class TSDFileAPIClient {
      */
     public Message upload(String token, InputStream inputStream, String fileName) throws IOException {
         String url = getURL("/files/stream");
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .put(url)
                 .header("Filename", fileName)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .body(inputStream.readAllBytes())
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Message.class);
+                .asString();
+        Message message = new Message();
+        try {
+            message = gson.fromJson(response.getBody(), Message.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        message.setStatusCode(response.getStatus());
+        message.setStatusText(response.getStatusText());
+        return message;
     }
 
     /**
@@ -64,12 +71,19 @@ public class TSDFileAPIClient {
     public ResumableUploads getResumableUploads(String token) {
         String urlString = "/files/resumables";
         String url = getURL(urlString);
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, ResumableUploads.class);
+                .asString();
+        ResumableUploads resumableUploads = new ResumableUploads();
+        try {
+            resumableUploads = gson.fromJson(response.getBody(), ResumableUploads.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        resumableUploads.setStatusCode(response.getStatus());
+        resumableUploads.setStatusText(response.getStatusText());
+        return resumableUploads;
     }
 
     /**
@@ -80,14 +94,11 @@ public class TSDFileAPIClient {
      * @return API response.
      */
     public Optional<ResumableUpload> getResumableUpload(String token, String uploadId) {
-        String urlString = "/files/resumables";
-        String url = getURL(urlString);
-        String response = unirestInstance
-                .get(url)
-                .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, ResumableUploads.class).getResumables().stream().filter(u -> u.getId().equalsIgnoreCase(uploadId)).findAny();
+        ResumableUploads resumableUploads = getResumableUploads(token);
+        Optional<ResumableUpload> resumableUpload = resumableUploads.getResumables().stream().filter(u -> u.getId().equalsIgnoreCase(uploadId)).findAny();
+        resumableUpload.ifPresent(r -> r.setStatusCode(resumableUploads.getStatusCode()));
+        resumableUpload.ifPresent(r -> r.setStatusText(resumableUploads.getStatusText()));
+        return resumableUpload;
     }
 
     /**
@@ -101,13 +112,20 @@ public class TSDFileAPIClient {
     public Chunk initializeResumableUpload(String token, byte[] firstChunk, String fileName) {
         String urlString = "/files/stream/" + fileName + "?chunk=1";
         String url = getURL(urlString);
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .body(firstChunk)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Chunk.class);
+                .asString();
+        Chunk chunkResponse = new Chunk();
+        try {
+            chunkResponse = gson.fromJson(response.getBody(), Chunk.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        chunkResponse.setStatusCode(response.getStatus());
+        chunkResponse.setStatusText(response.getStatusText());
+        return chunkResponse;
     }
 
     /**
@@ -123,13 +141,20 @@ public class TSDFileAPIClient {
         ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
         String urlString = "/files/stream/" + resumableUpload.getFileName() + "?chunk=" + chunkNumber + "&id=" + uploadId;
         String url = getURL(urlString);
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .body(chunk)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Chunk.class);
+                .asString();
+        Chunk chunkResponse = new Chunk();
+        try {
+            chunkResponse = gson.fromJson(response.getBody(), Chunk.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        chunkResponse.setStatusCode(response.getStatus());
+        chunkResponse.setStatusText(response.getStatusText());
+        return chunkResponse;
     }
 
     /**
@@ -142,12 +167,19 @@ public class TSDFileAPIClient {
     public Chunk finalizeResumableUpload(String token, String uploadId) {
         ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
         String url = getURL("/files/stream/" + resumableUpload.getFileName() + "?chunk=end&id=" + uploadId);
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Chunk.class);
+                .asString();
+        Chunk chunkResponse = new Chunk();
+        try {
+            chunkResponse = gson.fromJson(response.getBody(), Chunk.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        chunkResponse.setStatusCode(response.getStatus());
+        chunkResponse.setStatusText(response.getStatusText());
+        return chunkResponse;
     }
 
     /**
@@ -160,12 +192,19 @@ public class TSDFileAPIClient {
     public Message deleteResumableUpload(String token, String uploadId) {
         ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
         String url = getURL(String.format("/files/resumables/%s?id=%s", resumableUpload.getFileName(), uploadId));
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .delete(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Message.class);
+                .asString();
+        Message message = new Message();
+        try {
+            message = gson.fromJson(response.getBody(), Message.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        message.setStatusCode(response.getStatus());
+        message.setStatusText(response.getStatusText());
+        return message;
     }
 
     /**
@@ -176,14 +215,21 @@ public class TSDFileAPIClient {
      */
     public Token getToken(TokenType tokenType) {
         String url = getURL("/auth/basic/token");
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .post(url)
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(HeaderNames.AUTHORIZATION, BEARER + accessKey)
                 .body(String.format("{\"type\":\"%s\"}", tokenType.name().toLowerCase()))
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Token.class);
+                .asString();
+        Token token = new Token();
+        try {
+            token = gson.fromJson(response.getBody(), Token.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        token.setStatusCode(response.getStatus());
+        token.setStatusText(response.getStatusText());
+        return token;
     }
 
     /**
@@ -198,14 +244,21 @@ public class TSDFileAPIClient {
      */
     public Token getToken(TokenType tokenType, String accessKey, String username, String password, String oneTimeCode) {
         String url = getURL("/auth/tsd/token?type=" + tokenType.name().toLowerCase());
-        String response = unirestInstance
+        HttpResponse<String> response = unirestInstance
                 .post(url)
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(HeaderNames.AUTHORIZATION, BEARER + accessKey)
                 .body(String.format("{\"user_name\":\"%s\", \"password\": \"%s\", \"otp\":\"%s\"}", username, password, oneTimeCode))
-                .asString()
-                .getBody();
-        return gson.fromJson(response, Token.class);
+                .asString();
+        Token token = new Token();
+        try {
+            token = gson.fromJson(response.getBody(), Token.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        token.setStatusCode(response.getStatus());
+        token.setStatusText(response.getStatusText());
+        return token;
     }
 
     private String getURL(String endpoint) {
