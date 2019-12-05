@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.uio.ifi.tc.model.Environment;
 import no.uio.ifi.tc.model.TokenType;
 import no.uio.ifi.tc.model.pojo.*;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +25,7 @@ public class TSDFileAPIClient {
     private static final String BASE_URL = "%s://%s%s/%s/%s%s";
     private static final String BEARER = "Bearer ";
 
-    private UnirestInstance unirestInstance = Unirest.spawnInstance();
+    private UnirestInstance unirestInstance;
     private Gson gson = new Gson();
 
     private String protocol;
@@ -275,6 +276,8 @@ public class TSDFileAPIClient {
         private static final String DEFAULT_VERSION = "v1";
         private static final String DEFAULT_PROJECT = "p11";
 
+        private String clientCertificateStore;
+        private String clientCertificateStorePassword;
         private Boolean secure;
         private Boolean checkCertificate;
         private String host;
@@ -287,6 +290,19 @@ public class TSDFileAPIClient {
          * Public parameter-less constructor.
          */
         public Builder() {
+        }
+
+        /**
+         * Sets client certificate store location (PKCS#12) along with its password.
+         *
+         * @param clientCertificateStore         Client certificate store location.
+         * @param clientCertificateStorePassword client certificate store password.
+         * @return Builder instance.
+         */
+        public Builder clientCertificateStore(String clientCertificateStore, String clientCertificateStorePassword) {
+            this.clientCertificateStore = clientCertificateStore;
+            this.clientCertificateStorePassword = clientCertificateStorePassword;
+            return this;
         }
 
         /**
@@ -372,7 +388,11 @@ public class TSDFileAPIClient {
          * @return Client.
          */
         public TSDFileAPIClient build() {
+            if (StringUtils.isNotEmpty(clientCertificateStore) && StringUtils.isNotEmpty(clientCertificateStorePassword)) {
+                Unirest.config().clientCertificateStore(clientCertificateStore, clientCertificateStorePassword);
+            }
             TSDFileAPIClient tsdFileAPIClient = new TSDFileAPIClient();
+            tsdFileAPIClient.unirestInstance = Unirest.primaryInstance();
             tsdFileAPIClient.protocol = this.secure == null ? "https" : (this.secure ? "https" : "http");
             tsdFileAPIClient.unirestInstance.config().verifySsl(this.checkCertificate == null ? true : this.checkCertificate);
             tsdFileAPIClient.host = this.host == null ? DEFAULT_HOST : this.host;
