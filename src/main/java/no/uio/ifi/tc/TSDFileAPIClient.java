@@ -10,6 +10,7 @@ import no.uio.ifi.tc.model.Environment;
 import no.uio.ifi.tc.model.TokenType;
 import no.uio.ifi.tc.model.pojo.*;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -276,6 +277,7 @@ public class TSDFileAPIClient {
         private static final String DEFAULT_VERSION = "v1";
         private static final String DEFAULT_PROJECT = "p11";
 
+        private HttpClient httpClient;
         private String clientCertificateStore;
         private String clientCertificateStorePassword;
         private Boolean secure;
@@ -290,6 +292,17 @@ public class TSDFileAPIClient {
          * Public parameter-less constructor.
          */
         public Builder() {
+        }
+
+        /**
+         * Sets custom HTTP client.
+         *
+         * @param httpClient Apache HTTP client.
+         * @return Builder instance.
+         */
+        public Builder httpClient(HttpClient httpClient) {
+            this.httpClient = httpClient;
+            return this;
         }
 
         /**
@@ -388,6 +401,9 @@ public class TSDFileAPIClient {
          * @return Client.
          */
         public TSDFileAPIClient build() {
+            if (httpClient != null) {
+                Unirest.config().httpClient(httpClient);
+            }
             if (StringUtils.isNotEmpty(clientCertificateStore) && StringUtils.isNotEmpty(clientCertificateStorePassword)) {
                 Unirest.config().clientCertificateStore(clientCertificateStore, clientCertificateStorePassword);
             }
