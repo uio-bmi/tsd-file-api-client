@@ -402,6 +402,7 @@ public class TSDFileAPIClient {
          */
         public TSDFileAPIClient build() {
             if (httpClient != null) {
+                //noinspection deprecation
                 Unirest.config().httpClient(httpClient);
             }
             if (StringUtils.isNotEmpty(clientCertificateStore) && StringUtils.isNotEmpty(clientCertificateStorePassword)) {
