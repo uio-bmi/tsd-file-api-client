@@ -263,6 +263,34 @@ public class TSDFileAPIClient {
         return token;
     }
 
+    /**
+     * Retrieves the auth token by using non-TSD identity (OIDC provided).
+     *
+     * @param tokenType    Type of the token to request.
+     * @param accessKey    TSD access key.
+     * @param oidcProvider OIDC provider name.
+     * @param idToken      ID token obtained from the OIDC provider.
+     * @return API response.
+     */
+    public Token getToken(TokenType tokenType, String accessKey, String oidcProvider, String idToken) {
+        String url = getURL(String.format("/auth/%s/token?method=oidc&type=", oidcProvider.toLowerCase()) + tokenType.name().toLowerCase());
+        HttpResponse<String> response = unirestInstance
+                .post(url)
+                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
+                .header(HeaderNames.AUTHORIZATION, BEARER + accessKey)
+                .body(String.format("{\"idtoken\":\"%s\"}", idToken))
+                .asString();
+        Token token = new Token();
+        try {
+            token = gson.fromJson(response.getBody(), Token.class);
+        } catch (JsonSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        token.setStatusCode(response.getStatus());
+        token.setStatusText(response.getStatusText());
+        return token;
+    }
+
     private String getURL(String endpoint) {
         return String.format(BASE_URL, protocol, environment.getEnvironment(), host, version, project, endpoint);
     }
