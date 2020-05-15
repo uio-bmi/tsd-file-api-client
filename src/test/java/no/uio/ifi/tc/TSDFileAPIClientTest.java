@@ -10,7 +10,10 @@ public class TSDFileAPIClientTest {
 
     @Test
     public void test() {
-        TSDFileAPIClient tsdFileAPIClient = new TSDFileAPIClient.Builder().build();
+        TSDFileAPIClient tsdFileAPIClient = new TSDFileAPIClient.Builder()
+                .appId("ega")
+                .accessKey("access-key")
+                .build();
         Assert.assertNotNull(tsdFileAPIClient);
     }
 
