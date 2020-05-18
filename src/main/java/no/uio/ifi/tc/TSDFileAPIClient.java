@@ -46,21 +46,21 @@ public class TSDFileAPIClient {
      * @param token Auth token to use.
      * @return API response.
      */
-    public Message listFiles(String token) {
-        String url = getURL(getEndpoint(token, "/files/"));
+    public TSDFiles listFiles(String token) {
+        String url = getURL(getEndpoint(token, "/files"));
         HttpResponse<String> response = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
                 .asString();
-        Message message = new Message();
+        TSDFiles tsdFiles = new TSDFiles();
         try {
-            message = gson.fromJson(response.getBody(), Message.class);
+            tsdFiles = gson.fromJson(response.getBody(), TSDFiles.class);
         } catch (JsonSyntaxException e) {
             log.error(e.getMessage(), e);
         }
-        message.setStatusCode(response.getStatus());
-        message.setStatusText(response.getStatusText());
-        return message;
+        tsdFiles.setStatusCode(response.getStatus());
+        tsdFiles.setStatusText(response.getStatusText());
+        return tsdFiles;
     }
 
     /**
