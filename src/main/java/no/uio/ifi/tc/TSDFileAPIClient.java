@@ -257,6 +257,32 @@ public class TSDFileAPIClient {
     }
 
     /**
+     * Downloads file by its name.
+     *
+     * @param token    Auth token to use.
+     * @param fileName File name to download.
+     * @return Input stream for the requested file.
+     */
+    public InputStream downloadFile(String token, String fileName) {
+        String url = getURL(getEndpoint(token, "/files" + fileName));
+        GetRequest request = unirestInstance
+                .get(url)
+                .header(HeaderNames.AUTHORIZATION, BEARER + token);
+        final String[] statusCode = new String[1];
+        final String[] statusText = new String[1];
+        final InputStream[] result = new InputStream[1];
+        request.thenConsume(rawResponse -> {
+            statusCode[0] = String.valueOf(rawResponse.getStatus());
+            statusText[0] = String.valueOf(rawResponse.getStatusText());
+            result[0] = rawResponse.getContent();
+        });
+        if (!statusCode[0].startsWith("20")) {
+            throw new RuntimeException(statusCode[0] + " " + statusText[0]);
+        }
+        return result[0];
+    }
+
+    /**
      * Retrieves the auth token by using non-TSD identity (OIDC provided).
      *
      * @param tokenType    Type of the token to request.
