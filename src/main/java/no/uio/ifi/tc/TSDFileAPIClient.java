@@ -9,11 +9,13 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.uio.ifi.tc.model.Environment;
 import no.uio.ifi.tc.model.pojo.*;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Optional;
 
 /**
@@ -37,17 +39,17 @@ public class TSDFileAPIClient {
     private Environment environment;
     private String version;
     private String project;
-    private String appId;
     private String accessKey;
 
     /**
      * Lists uploaded files.
      *
      * @param token Auth token to use.
+     * @param appId TSD application ID.
      * @return API response.
      */
-    public TSDFiles listFiles(String token) {
-        String url = getURL(getEndpoint(token, "/files"));
+    public TSDFiles listFiles(String token, String appId) {
+        String url = getURL(getEndpoint(token, appId, "/files"));
         HttpResponse<String> response = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -67,13 +69,14 @@ public class TSDFileAPIClient {
      * Streams the input at once, not chunked.
      *
      * @param token       Auth token to use.
+     * @param appId       TSD application ID.
      * @param inputStream Stream to send to TSD.
      * @param fileName    File name to use.
      * @return API response.
      * @throws IOException In case of I/O related errors.
      */
-    public Message uploadFile(String token, InputStream inputStream, String fileName) throws IOException {
-        String url = getURL(getEndpoint(token, "/files/" + fileName));
+    public Message uploadFile(String token, String appId, InputStream inputStream, String fileName) throws IOException {
+        String url = getURL(getEndpoint(token, appId, "/files/" + fileName));
         HttpResponse<String> response = unirestInstance
                 .put(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -94,11 +97,12 @@ public class TSDFileAPIClient {
      * Deletes uploaded file.
      *
      * @param token    Auth token to use.
+     * @param appId    TSD application ID.
      * @param fileName File name to use.
      * @return API response.
      */
-    public Message deleteFile(String token, String fileName) {
-        String url = getURL(getEndpoint(token, "/files/" + fileName));
+    public Message deleteFile(String token, String appId, String fileName) {
+        String url = getURL(getEndpoint(token, appId, "/files/" + fileName));
         HttpResponse<String> response = unirestInstance
                 .delete(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -118,10 +122,11 @@ public class TSDFileAPIClient {
      * Lists all initiated and not yet finished resumable uploads by file and Upload ID.
      *
      * @param token Auth token to use.
+     * @param appId TSD application ID.
      * @return API response.
      */
-    public ResumableUploads listResumableUploads(String token) {
-        String url = getURL(getEndpoint(token, "/resumables"));
+    public ResumableUploads listResumableUploads(String token, String appId) {
+        String url = getURL(getEndpoint(token, appId, "/resumables"));
         HttpResponse<String> response = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -141,11 +146,12 @@ public class TSDFileAPIClient {
      * Lists all initiated and not yet finished resumable uploads by file and Upload ID.
      *
      * @param token    Auth token to use.
+     * @param appId    TSD application ID.
      * @param uploadId Resumable upload ID.
      * @return API response.
      */
-    public Optional<ResumableUpload> getResumableUpload(String token, String uploadId) {
-        ResumableUploads resumableUploads = listResumableUploads(token);
+    public Optional<ResumableUpload> getResumableUpload(String token, String appId, String uploadId) {
+        ResumableUploads resumableUploads = listResumableUploads(token, appId);
         Optional<ResumableUpload> resumableUpload = resumableUploads.getResumables().stream().filter(u -> u.getId().equalsIgnoreCase(uploadId)).findAny();
         resumableUpload.ifPresent(r -> r.setStatusCode(resumableUploads.getStatusCode()));
         resumableUpload.ifPresent(r -> r.setStatusText(resumableUploads.getStatusText()));
@@ -156,12 +162,13 @@ public class TSDFileAPIClient {
      * Uploads the first chunk of data (initializes resumable upload).
      *
      * @param token      Auth token to use.
+     * @param appId      TSD application ID.
      * @param firstChunk First chunk of data.
      * @param fileName   File name to use.
      * @return API response.
      */
-    public Chunk initializeResumableUpload(String token, byte[] firstChunk, String fileName) {
-        String url = getURL(getEndpoint(token, "/files/" + fileName + "?chunk=1"));
+    public Chunk initializeResumableUpload(String token, String appId, byte[] firstChunk, String fileName) {
+        String url = getURL(getEndpoint(token, appId, "/files/" + fileName + "?chunk=1"));
         HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -182,14 +189,15 @@ public class TSDFileAPIClient {
      * Upload another chunk of data (NB: chunks must arrive in order).
      *
      * @param token       Auth token to use.
+     * @param appId       TSD application ID.
      * @param chunkNumber Order number of the chunk.
      * @param chunk       Chunk of data to upload.
      * @param uploadId    Upload ID.
      * @return API response.
      */
-    public Chunk uploadChunk(String token, long chunkNumber, byte[] chunk, String uploadId) {
-        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
-        String url = getURL(getEndpoint(token, "/files/" + resumableUpload.getFileName() + "?chunk=" + chunkNumber + "&id=" + uploadId));
+    public Chunk uploadChunk(String token, String appId, long chunkNumber, byte[] chunk, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, appId, uploadId).orElseThrow();
+        String url = getURL(getEndpoint(token, appId, "/files/" + resumableUpload.getFileName() + "?chunk=" + chunkNumber + "&id=" + uploadId));
         HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -210,12 +218,13 @@ public class TSDFileAPIClient {
      * Finalizes resumable upload.
      *
      * @param token    Auth token to use.
+     * @param appId    TSD application ID.
      * @param uploadId Upload ID.
      * @return API response.
      */
-    public Chunk finalizeResumableUpload(String token, String uploadId) {
-        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
-        String url = getURL(getEndpoint(token, "/files/" + resumableUpload.getFileName() + "?chunk=end&id=" + uploadId));
+    public Chunk finalizeResumableUpload(String token, String appId, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, appId, uploadId).orElseThrow();
+        String url = getURL(getEndpoint(token, appId, "/files/" + resumableUpload.getFileName() + "?chunk=end&id=" + uploadId));
         HttpResponse<String> response = unirestInstance
                 .patch(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -235,12 +244,13 @@ public class TSDFileAPIClient {
      * Deletes initiated and not yet finished resumable upload.
      *
      * @param token    Auth token to use.
+     * @param appId    TSD application ID.
      * @param uploadId Upload ID.
      * @return API response.
      */
-    public Message deleteResumableUpload(String token, String uploadId) {
-        ResumableUpload resumableUpload = getResumableUpload(token, uploadId).orElseThrow();
-        String url = getURL(getEndpoint(token, "/resumables/" + resumableUpload.getFileName() + "?id=" + uploadId));
+    public Message deleteResumableUpload(String token, String appId, String uploadId) {
+        ResumableUpload resumableUpload = getResumableUpload(token, appId, uploadId).orElseThrow();
+        String url = getURL(getEndpoint(token, appId, "/resumables/" + resumableUpload.getFileName() + "?id=" + uploadId));
         HttpResponse<String> response = unirestInstance
                 .delete(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token)
@@ -259,27 +269,31 @@ public class TSDFileAPIClient {
     /**
      * Downloads file by its name.
      *
-     * @param token    Auth token to use.
-     * @param fileName File name to download.
-     * @return Input stream for the requested file.
+     * @param token        Auth token to use.
+     * @param appId        TSD application ID.
+     * @param fileName     File name to download.
+     * @param outputStream OutputStream to write file to.
+     * @return API response.
      */
-    public InputStream downloadFile(String token, String fileName) {
-        String url = getURL(getEndpoint(token, "/files" + fileName));
+    public TSDFileAPIResponse downloadFile(String token, String appId, String fileName, OutputStream outputStream) {
+        String url = getURL(getEndpoint(token, appId, "/files/" + fileName));
         GetRequest request = unirestInstance
                 .get(url)
                 .header(HeaderNames.AUTHORIZATION, BEARER + token);
-        final String[] statusCode = new String[1];
-        final String[] statusText = new String[1];
-        final InputStream[] result = new InputStream[1];
+        final Message message = new Message();
         request.thenConsume(rawResponse -> {
-            statusCode[0] = String.valueOf(rawResponse.getStatus());
-            statusText[0] = String.valueOf(rawResponse.getStatusText());
-            result[0] = rawResponse.getContent();
+            message.setStatusCode(rawResponse.getStatus());
+            message.setStatusText(rawResponse.getStatusText());
+            if (!String.valueOf(message.getStatusCode()).startsWith("20")) {
+                return;
+            }
+            try {
+                IOUtils.copyLarge(rawResponse.getContent(), outputStream);
+            } catch (IOException e) {
+                message.setMessage(e.getMessage());
+            }
         });
-        if (!statusCode[0].startsWith("20")) {
-            throw new RuntimeException(statusCode[0] + " " + statusText[0]);
-        }
-        return result[0];
+        return message;
     }
 
     /**
@@ -309,7 +323,7 @@ public class TSDFileAPIClient {
         return token;
     }
 
-    private String getEndpoint(String token, String path) {
+    private String getEndpoint(String token, String appId, String path) {
         return String.format("/%s/%s%s", appId, JWT.decode(token).getClaim(USER_CLAIM).asString(), path);
     }
 
@@ -336,7 +350,6 @@ public class TSDFileAPIClient {
         private Environment environment;
         private String version;
         private String project;
-        private String appId;
         private String accessKey;
 
         /**
@@ -436,17 +449,6 @@ public class TSDFileAPIClient {
         }
 
         /**
-         * Sets the application ID to use.
-         *
-         * @param appId Application ID in the TSD.
-         * @return Builder instance.
-         */
-        public Builder appId(String appId) {
-            this.appId = appId;
-            return this;
-        }
-
-        /**
          * Sets the access key to use.
          *
          * @param accessKey TSD File API access key for Basic Auth.
@@ -478,10 +480,6 @@ public class TSDFileAPIClient {
             tsdFileAPIClient.environment = this.environment == null ? DEFAULT_ENVIRONMENT : this.environment;
             tsdFileAPIClient.version = this.version == null ? DEFAULT_VERSION : this.version;
             tsdFileAPIClient.project = this.project == null ? DEFAULT_PROJECT : this.project;
-            if (StringUtils.isEmpty(this.appId)) {
-                throw new IllegalArgumentException("Application ID must be set");
-            }
-            tsdFileAPIClient.appId = this.appId;
             if (StringUtils.isEmpty(this.accessKey)) {
                 throw new IllegalArgumentException("Access key must be set");
             }
