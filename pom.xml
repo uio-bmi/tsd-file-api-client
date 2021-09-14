@@ -136,9 +136,9 @@
 
     <distributionManagement>
         <repository>
-            <id>bintray-uio-bmi-TSD-File-API-client</id>
+            <id>github-uio-bmi-TSD-File-API-client</id>
             <name>uio-bmi-TSD-File-API-client</name>
-            <url>https://api.bintray.com/maven/uio-bmi/TSD-File-API-client/TSD-File-API-client/;publish=1</url>
+            <url>https://maven.pkg.github.com/uio-bmi/TSD-File-API-client</url>
         </repository>
     </distributionManagement>
 
