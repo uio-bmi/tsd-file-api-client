@@ -4,8 +4,6 @@ on:
   push:
     - 'v*'
 
-  workflow_dispatch:
-
 jobs:
 
   build:
