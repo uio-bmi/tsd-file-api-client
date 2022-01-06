@@ -136,9 +136,9 @@
 
     <distributionManagement>
         <repository>
-            <id>github-uio-bmi-TSD-File-API-client</id>
-            <name>uio-bmi-TSD-File-API-client</name>
-            <url>https://maven.pkg.github.com/uio-bmi/TSD-File-API-client</url>
+            <id>github</id>
+            <name>uio-bmi-tsd-file-api-client</name>
+            <url>https://maven.pkg.github.com/uio-bmi/tsd-file-api-client</url>
         </repository>
     </distributionManagement>
 
