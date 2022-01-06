@@ -1,6 +1,6 @@
 # TSD-File-API-client
 [![CodeFactor](https://www.codefactor.io/repository/github/uio-bmi/tsd-file-api-client/badge)](https://www.codefactor.io/repository/github/uio-bmi/tsd-file-api-client)
-[![Download](https://img.shields.io/badge/GitHub%20Packages-Download-GREEN)](https://github.com/uio-bmi/TSD-File-API-client/packages/1086685)
+[![Download](https://img.shields.io/badge/GitHub%20Packages-Download-GREEN)](https://maven.pkg.github.com/uio-bmi/tsd-file-api-client/no.uio.ifi.tsd-file-api-client/2.0.0/tsd-file-api-client-2.0.0.jar)
 ## Protocol
 
 More info on the protocol: https://test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
@@ -24,9 +24,9 @@ To include this library to your Maven project add following to the `pom.xml`:
 
     <repositories>
         <repository>
-            <id>github-uio-bmi-TSD-File-API-client</id>
-            <name>uio-bmi-TSD-File-API-client</name>
-            <url>https://maven.pkg.github.com/uio-bmi/TSD-File-API-client</url>
+            <id>github</id>
+            <name>uio-bmi-tsd-file-api-client</name>
+            <url>https://maven.pkg.github.com/uio-bmi/tsd-file-api-client</url>
         </repository>
     </repositories>
 
