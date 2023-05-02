@@ -3,7 +3,7 @@
 [![Download](https://img.shields.io/badge/GitHub%20Packages-Download-GREEN)](https://maven.pkg.github.com/uio-bmi/tsd-file-api-client/no.uio.ifi.tsd-file-api-client/2.0.0/tsd-file-api-client-2.0.0.jar)
 ## Protocol
 
-More info on the protocol: https://test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
+More info on the protocol: https://data.tsd.usit.no/api/tsd-api-integration.html
 
 ## Maven Installation
 To include this library to your Maven project add following to the `pom.xml`:
