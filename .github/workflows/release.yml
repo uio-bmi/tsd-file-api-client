@@ -23,7 +23,7 @@ jobs:
 
       - name: Deploy artifact with Maven
         env:
-          GITHUB_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+          GITHUB_TOKEN: ${{secrets.MAVEN_TOKEN}}
         run: |
           mvn javadoc:javadoc
           mvn --batch-mode deploy
