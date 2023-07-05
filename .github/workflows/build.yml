@@ -28,4 +28,4 @@ jobs:
               "password": "${{ secrets.MAVEN_TOKEN }}"
             }]
       - name: build maven
-        run: mvn clean package
+        run: mvn clean install
