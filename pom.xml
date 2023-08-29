@@ -6,7 +6,7 @@
 
     <groupId>no.uio.ifi</groupId>
     <artifactId>tsd-file-api-client</artifactId>
-    <version>2.0.3</version>
+    <version>2.0.4</version>
     <packaging>jar</packaging>
 
     <name>TSD File API client</name>
@@ -120,7 +120,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -135,7 +135,7 @@
 
     <distributionManagement>
         <repository>
-            <id>github-tsd-file-api-client</id>
+            <id>github</id>
             <name>uio-bmi-tsd-file-api-client</name>
             <url>https://maven.pkg.github.com/uio-bmi/tsd-file-api-client</url>
         </repository>
