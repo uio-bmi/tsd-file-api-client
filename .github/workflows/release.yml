@@ -25,6 +25,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
+          echo /home/runner/.m2/settings.xml
           mvn javadoc:javadoc
           mvn --batch-mode deploy
 
