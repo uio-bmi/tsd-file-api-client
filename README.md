@@ -1,3 +1,7 @@
+# Notice: 
+# The work in this repo is continued in a new mono repo here: https://github.com/ELIXIR-NO/FEGA-Norway
+# Direct link inside mono repo: https://github.com/ELIXIR-NO/FEGA-Norway/tree/main/lib/tsd-file-api-client
+
 # TSD-File-API-client
 [![CodeFactor](https://www.codefactor.io/repository/github/uio-bmi/tsd-file-api-client/badge)](https://www.codefactor.io/repository/github/uio-bmi/tsd-file-api-client)
 [![Download](https://img.shields.io/badge/GitHub%20Packages-Download-GREEN)](https://maven.pkg.github.com/uio-bmi/tsd-file-api-client/no.uio.ifi.tsd-file-api-client/2.0.0/tsd-file-api-client-2.0.0.jar)
